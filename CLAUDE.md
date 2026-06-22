@@ -41,5 +41,6 @@
 - [x] CI/CD(GitHub Actions → SSH 배포) + 레포 `dropsyoon/ax-stack`. **동작 검증됨**.
 - [x] 와일드카드 A레코드(사용자 완료) + **메인 사이트 라이브** `https://ax-stack.com`.
 - [x] 서버 IaC 미러(`server/`) + `scripts/add-subdomain.sh` + **서브도메인 패턴 검증**(`hello.ax-stack.com` 자동 인증서 200).
-- [ ] 기존 포트폴리오(drops-rag·drops-podcast) 서브도메인 이전(Task 5, 후속).
-> 세부는 `history/history.md` 최신 블록 참조. 핵심 함정: Caddyfile은 단일파일 바인드마운트 → 배포는 `--inplace`+`caddy reload`.
+- [x] **drops-rag 이전**(`rag.ax-stack.com`) + **on-demand(Sablier)** — 평소 down→접속 시 ~5초 기상→idle 10m 종료.
+- [ ] **drops-podcast 이전**(`podcast.ax-stack.com`) — 남음. 선행: 원본 소스 2줄 수정(사용자 분담, `web/next.config.js` basePath·`api/app/main.py` root_path를 `/`로) + NLM 쿠키 프로파일 이전 + worker on-demand.
+> 세부는 `history/history.md` 최신 블록 참조. 핵심 함정: ① Caddyfile은 단일파일 바인드마운트 → 배포는 `--inplace`+`caddy reload` ② caddy가 build 서비스(sablier) → `deploy-stack --build`.
