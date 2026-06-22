@@ -61,6 +61,28 @@ curl -I https://<id>.ax-stack.com
 ```
 > 검증된 레퍼런스: `hello.ax-stack.com`(정적, `server/sites/hello/`).
 
+### 4.5 무거운 프로젝트 on-demand (Sablier)
+메모리 큰 프로젝트는 평소 down, 접속 시 자동 기상·idle 후 종료(4GB 보호).
+- **인프라**: Caddy를 sablier 플러그인 커스텀 빌드(`server/caddy/Dockerfile`) + `sablier` 서버 컨테이너(docker socket). `server/compose.yaml`에 정의됨.
+- **프로젝트 적용**:
+  1. 프로젝트 compose의 각 서비스에 라벨 `["sablier.enable=true", "sablier.group=<id>"]`.
+  2. Caddyfile `<id>` 블록을 route로:
+     ```caddy
+     <id>.ax-stack.com {
+       route {
+         sablier http://sablier:10000 {
+           group <id>
+           session_duration 10m
+           dynamic { display_name "<표시명>"; theme ghost; refresh_frequency 5s }
+         }
+         reverse_proxy <id>-web:<port>
+       }
+     }
+     ```
+  3. 배포: `scripts/deploy-stack.sh`(caddy `--build` 포함) + 프로젝트 `docker compose up -d`(라벨 반영).
+- **검증**: 프로젝트 `docker compose stop` → `curl https://<id>.ax-stack.com` → 수 초 내 컨테이너 기상 → 실제 앱.
+- **레퍼런스**: `drops-rag`(rag.ax-stack.com). 평소 down(메모리 ~0.9GB 회수) → 접속 시 ~5초 기상 → idle 10분 종료.
+
 ## 5. CI/CD (GitHub Actions)
 - 레포: `dropsyoon/ax-stack` (PRIVATE).
 - `.github/workflows/deploy-site.yml`: `site/**` 변경 push→main → Node 빌드 → rsync `dist/` → 서버 `sites/landing/`.

@@ -24,6 +24,7 @@ services:
       - api
     networks: [internal, axweb]                              # axweb: Caddy 도달용
     mem_limit: 320m
+    labels: ["sablier.enable=true", "sablier.group=rag"]
 
   api:
     build:
@@ -45,6 +46,7 @@ services:
       - models:/models
     networks: [internal]
     mem_limit: 1500m
+    labels: ["sablier.enable=true", "sablier.group=rag"]
 
   worker:
     build:
@@ -66,6 +68,7 @@ services:
       - models:/models
     networks: [internal]
     mem_limit: 2200m
+    labels: ["sablier.enable=true", "sablier.group=rag"]
 
   db:
     image: pgvector/pgvector:pg16
@@ -85,6 +88,7 @@ services:
       retries: 5
     networks: [internal]
     mem_limit: 512m
+    labels: ["sablier.enable=true", "sablier.group=rag"]
 
   redis:
     image: redis:7-alpine
@@ -100,6 +104,7 @@ services:
       retries: 5
     networks: [internal]
     mem_limit: 128m
+    labels: ["sablier.enable=true", "sablier.group=rag"]
 
   migrate:
     image: drops-rag-api                       # api 이미지 재사용

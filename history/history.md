@@ -65,3 +65,24 @@
 ### 다음
 - [ ] Task 5: 기존 포트폴리오 이전 — `drops-rag`→`rag.ax-stack.com`, `drops-podcast`→`podcast.ax-stack.com`. 소스 확보·basePath 루트화(소스변경 사용자 분담)·리소스 점검(4GB)·on-demand(Sablier) 검토.
 - [ ] (선택) 파비콘 추가(현재 favicon.ico 404), 회사 콘텐츠(Company/Services/Contact 문구) 다듬기.
+
+---
+
+## 2026-06-22 (이어서 2) — drops-rag 서브도메인 이전 + on-demand(Sablier)
+
+### drops-rag 이전 (rag.ax-stack.com)
+- 조사: 원본 `dropsyoon/study_03_bmad_rag`. web basePath는 env `NEXT_PUBLIC_BASE_PATH`(빌드타임) → **소스 무변경, env만**. backend root_path 없음. 임베딩 모델 `multilingual-e5-large`(2.2GB) lazy load. 데이터 토이 → 새로 시작.
+- `projects/drops-rag/compose.yaml`(basePath 빈값, rag-* 컨테이너, ax-stack-web 연결, mem_limit, 호스트 포트 비노출) + `.env.prod`(새 DB비번/JWT, CORS rag.ax-stack.com).
+- 로컬 소스(web/backend/infra) → 서버 `~/ax-stack/projects/drops-rag/src/` rsync. 서버에서 build(api/worker 이미지 각 9GB — torch). migrate(8테이블) → up.
+- Caddyfile `rag.ax-stack.com` + registry URL 갱신. **라이브: /intro 200(DROPS RAG), /api/health 200, LE 인증서**.
+- src는 git 미추적(`.gitignore: projects/*/src/`), .env.prod 미추적.
+
+### on-demand (Sablier) — 메모리 4GB 보호
+- **동기**: drops-rag 상시 baseline 1.9GB(+모델 풀로드 2~3GB). podcast까지면 4GB 한계 → on-demand 필수.
+- **구성**: `server/caddy/Dockerfile`(xcaddy + `sablier-caddy-plugin@v1.0.2`) → caddy를 `ax-stack-caddy` 커스텀 빌드. `server/compose.yaml`에 `sablier` 서버(docker socket, :10000) 추가. drops-rag 5개 컨테이너에 라벨 `sablier.group=rag`. Caddyfile rag 블록 → `route{ sablier{group rag; session_duration 10m; dynamic} reverse_proxy }`.
+- **검증**: drops-rag stop(메모리 1.9→0.85GB 회수) → `rag.ax-stack.com` 접속 → Sablier 로딩화면("DROPS RAG", Starting) → ~5초 컨테이너 기상 → 실제 앱 200. idle 10분 후 자동 종료.
+- 기존 사이트(ax-stack.com/hello) caddy 교체 영향 없음(200 유지).
+- `deploy-stack`(.sh/.yml)에 `--build` 추가(caddy가 build 서비스).
+
+### 다음
+- [ ] drops-podcast 이전 — basePath/root_path 소스 2줄 수정(사용자 분담, for_deploy 명세) + NLM 쿠키 프로파일 이전 + sablier on-demand.

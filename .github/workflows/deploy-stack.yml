@@ -32,4 +32,4 @@ jobs:
             server/ \
             "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/ubuntu/ax-stack/"
           ssh $SSHOPT "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
-            "cd ~/ax-stack && docker compose up -d && docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile && docker compose ps"
+            "cd ~/ax-stack && docker compose up -d --build && docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile && docker compose ps"

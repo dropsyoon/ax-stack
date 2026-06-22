@@ -24,7 +24,18 @@ hello.ax-stack.com {
 	reverse_proxy hello-web:80
 }
 
-# drops-rag (BMAD RAG 챗봇) — projects/drops-rag, web 컨테이너 포트 3000
+# drops-rag (BMAD RAG 챗봇) — on-demand: 접속 시 sablier가 group=rag 기상, idle 10m 후 종료
 rag.ax-stack.com {
-	reverse_proxy rag-web:3000
+	route {
+		sablier http://sablier:10000 {
+			group rag
+			session_duration 10m
+			dynamic {
+				display_name "DROPS RAG"
+				theme ghost
+				refresh_frequency 5s
+			}
+		}
+		reverse_proxy rag-web:3000
+	}
 }

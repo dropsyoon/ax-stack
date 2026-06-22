@@ -9,4 +9,4 @@ H="ubuntu@43.133.243.241"
 SSHOPT=(-i "$KEY" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10)
 
 rsync -az --inplace -e "ssh ${SSHOPT[*]}" "$ROOT/server/" "$H:/home/ubuntu/ax-stack/"
-ssh "${SSHOPT[@]}" "$H" 'cd ~/ax-stack && docker compose up -d && docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile && docker compose ps --format "{{.Name}}\t{{.Status}}"'
+ssh "${SSHOPT[@]}" "$H" 'cd ~/ax-stack && docker compose up -d --build && docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile && docker compose ps --format "{{.Name}}\t{{.Status}}"'
