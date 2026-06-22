@@ -1,0 +1,35 @@
+name: ax-stack
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - web
+    depends_on:
+      - landing
+
+  landing:
+    image: nginx:alpine
+    container_name: landing
+    restart: unless-stopped
+    volumes:
+      - ./sites/landing:/usr/share/nginx/html:ro
+    networks:
+      - web
+
+networks:
+  web:
+    name: ax-stack-web
+
+volumes:
+  caddy_data:
+  caddy_config:

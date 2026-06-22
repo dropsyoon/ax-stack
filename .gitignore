@@ -1,0 +1,14 @@
+# 비밀·키
+ssh/*.pem
+**/.env
+**/.env.*
+!**/.env.template
+
+# 빌드·의존성
+site/node_modules/
+site/dist/
+
+# OS·툴
+.DS_Store
+.omc/
+*.log

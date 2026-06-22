@@ -1,0 +1,20 @@
+# ============================================================
+# ax-stack reverse proxy (Caddy) — 도메인 연결 + 자동 HTTPS
+# ------------------------------------------------------------
+# DNS A레코드(ax-stack.com / www)가 이 서버를 가리키므로
+# Caddy가 Let's Encrypt 인증서를 자동 발급/갱신합니다.
+# ============================================================
+
+ax-stack.com, www.ax-stack.com {
+	reverse_proxy landing:80
+}
+
+# IP로 직접 들어오는 :80 요청도 랜딩으로 (선택)
+http:// {
+	reverse_proxy landing:80
+}
+
+# ── 서비스 추가 예시 (서브도메인별 라우팅) ──
+# app1.ax-stack.com {
+# 	reverse_proxy app1:80
+# }

@@ -1,0 +1,14 @@
+[
+  {
+    "id": "drops-rag",
+    "name": "DROPS RAG 챗봇",
+    "url": "https://drops.sumzip.com/drops-rag/",
+    "note": "이전 예정 → rag.ax-stack.com"
+  },
+  {
+    "id": "drops-podcast",
+    "name": "Drops Podcast",
+    "url": "https://drops.sumzip.com/drops-podcast/",
+    "note": "이전 예정 → podcast.ax-stack.com"
+  }
+]

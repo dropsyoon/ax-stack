@@ -1,0 +1,4 @@
+@import "tailwindcss";
+
+/* 수동 테마 토글: 루트(.dark)에 클래스가 있으면 dark: 유틸리티 활성화 */
+@custom-variant dark (&:where(.dark, .dark *));
