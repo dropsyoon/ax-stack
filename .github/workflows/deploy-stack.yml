@@ -1,0 +1,34 @@
+name: Deploy stack
+
+# server/ (compose.yaml, caddy/Caddyfile 등) 변경 시 서버 ~/ax-stack 동기화 후 compose up.
+# 주의: sites/landing 은 deploy-site 가 관리하므로 여기서 --delete 하지 않는다.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - '.github/workflows/deploy-stack.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-stack
+  cancel-in-progress: false
+
+jobs:
+  sync-and-up:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sync server/ and compose up
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/key
+          chmod 600 ~/.ssh/key
+          SSHOPT="-i ~/.ssh/key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+          rsync -az -e "ssh $SSHOPT" \
+            server/ \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/ubuntu/ax-stack/"
+          ssh $SSHOPT "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            "cd ~/ax-stack && docker compose up -d && docker compose ps"

@@ -1,0 +1,44 @@
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/deploy-site.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-site
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install & build
+        working-directory: site
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy dist → server landing
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/key
+          chmod 600 ~/.ssh/key
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" \
+            site/dist/ \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/ubuntu/ax-stack/sites/landing/"
+
+      - name: Verify
+        run: curl -sS -m 15 -I https://ax-stack.com | head -1
