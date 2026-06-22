@@ -23,3 +23,8 @@ ax-stack.com, www.ax-stack.com {
 hello.ax-stack.com {
 	reverse_proxy hello-web:80
 }
+
+# drops-rag (BMAD RAG 챗봇) — projects/drops-rag, web 컨테이너 포트 3000
+rag.ax-stack.com {
+	reverse_proxy rag-web:3000
+}

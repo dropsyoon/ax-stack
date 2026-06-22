@@ -1,0 +1,130 @@
+# ax-stack ▸ drops-rag (BMAD RAG 챗봇) — 서브도메인 rag.ax-stack.com
+# ─────────────────────────────────────────────────────────────────────────────
+# 원본: dropsyoon/study_03_bmad_rag → 서버 ./src/study_03_bmad_rag 에 rsync.
+# 경로 기반(/drops-rag) → 서브도메인 루트(/)로 전환: NEXT_PUBLIC_BASE_PATH 빈값(소스 무변경).
+# Caddy(rag.ax-stack.com)가 ax-stack-web 네트워크로 rag-web:3000 에 도달.
+# api·worker·db·redis 는 internal 전용(호스트 비노출).
+# 자원: on-demand 운영 전제 + mem_limit 상한(4GB 보호).
+name: drops-rag
+
+x-src: &src ./src/study_03_bmad_rag
+
+services:
+  web:
+    build:
+      context: ./src/study_03_bmad_rag/web
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_BASE_PATH: ${NEXT_PUBLIC_BASE_PATH:-}   # 서브도메인 루트 → 빈값
+        BACKEND_INTERNAL_URL: http://api:8000
+    image: drops-rag-web
+    container_name: rag-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    networks: [internal, axweb]                              # axweb: Caddy 도달용
+    mem_limit: 320m
+
+  api:
+    build:
+      context: ./src/study_03_bmad_rag/backend
+      dockerfile: Dockerfile
+    image: drops-rag-api
+    container_name: rag-api
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      HF_HOME: /models
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    volumes:
+      - uploads:/app/uploads
+      - models:/models
+    networks: [internal]
+    mem_limit: 1500m
+
+  worker:
+    build:
+      context: ./src/study_03_bmad_rag/backend
+      dockerfile: ../infra/Dockerfile.worker
+    image: drops-rag-worker
+    container_name: rag-worker
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      HF_HOME: /models
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    volumes:
+      - uploads:/app/uploads
+      - models:/models
+    networks: [internal]
+    mem_limit: 2200m
+
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: rag-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./src/study_03_bmad_rag/infra/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [internal]
+    mem_limit: 512m
+
+  redis:
+    image: redis:7-alpine
+    container_name: rag-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [internal]
+    mem_limit: 128m
+
+  migrate:
+    image: drops-rag-api                       # api 이미지 재사용
+    container_name: rag-migrate
+    env_file: .env.prod
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    command:
+      - sh
+      - -c
+      - sed -i "s#^sqlalchemy.url = .*#sqlalchemy.url = $$DATABASE_URL#" alembic.ini && python -m alembic upgrade head
+    depends_on:
+      db: { condition: service_healthy }
+    networks: [internal]
+    profiles: [setup]                          # `--profile setup` 시에만 기동
+
+networks:
+  internal:
+    name: drops-rag-net
+  axweb:
+    external: true
+    name: ax-stack-web
+
+volumes:
+  pgdata:    { name: drops-rag-pgdata }
+  redisdata: { name: drops-rag-redisdata }
+  uploads:   { name: drops-rag-uploads }
+  models:    { name: drops-rag-models }

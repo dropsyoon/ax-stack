@@ -8,6 +8,9 @@ ssh/*.pem
 site/node_modules/
 site/dist/
 
+# 프로젝트 원본 소스(각자 별도 레포에서 rsync — 인프라 정의만 추적)
+projects/*/src/
+
 # OS·툴
 .DS_Store
 .omc/
