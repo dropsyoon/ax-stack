@@ -26,6 +26,18 @@ services:
     networks:
       - web
 
+  # ── 서브도메인 정적 데모 예시 (hello.ax-stack.com) ──
+  # 정적 포트폴리오의 표준 패턴: nginx:alpine + sites/<id> 마운트 + mem_limit.
+  hello:
+    image: nginx:alpine
+    container_name: hello-web
+    restart: unless-stopped
+    volumes:
+      - ./sites/hello:/usr/share/nginx/html:ro
+    networks:
+      - web
+    mem_limit: 64m
+
 networks:
   web:
     name: ax-stack-web

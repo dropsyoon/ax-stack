@@ -38,8 +38,8 @@
 
 ## 6. 진행 상태
 - [x] 로컬 폴더 골격 + site 이전·ax-stack 리뉴얼 + 빌드 검증.
-- [ ] 서버 IaC 미러(`server/`) + 서브도메인 추가 스크립트.
-- [ ] CI/CD(GitHub Actions → SSH 배포) + 레포.
-- [ ] 와일드카드 A레코드(사용자) + 메인 사이트 첫 배포.
-- [ ] 기존 포트폴리오(drops-rag·drops-podcast) 서브도메인 이전.
-> 세부는 `history/history.md` 최신 블록 참조.
+- [x] CI/CD(GitHub Actions → SSH 배포) + 레포 `dropsyoon/ax-stack`. **동작 검증됨**.
+- [x] 와일드카드 A레코드(사용자 완료) + **메인 사이트 라이브** `https://ax-stack.com`.
+- [x] 서버 IaC 미러(`server/`) + `scripts/add-subdomain.sh` + **서브도메인 패턴 검증**(`hello.ax-stack.com` 자동 인증서 200).
+- [ ] 기존 포트폴리오(drops-rag·drops-podcast) 서브도메인 이전(Task 5, 후속).
+> 세부는 `history/history.md` 최신 블록 참조. 핵심 함정: Caddyfile은 단일파일 바인드마운트 → 배포는 `--inplace`+`caddy reload`.

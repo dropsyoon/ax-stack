@@ -46,17 +46,20 @@ curl -I https://ax-stack.com                # 200 확인
 
 ## 4. 서브도메인 프로젝트 추가
 ```bash
+# 정적 데모(nginx 컨테이너 자동 생성):
 scripts/add-subdomain.sh <id> --name "표시명"
+# 동적 프로젝트(외부 컨테이너를 ax-stack-web 네트워크에 <id>-web 으로 연결):
+scripts/add-subdomain.sh <id> --name "표시명" --type proxy --target <id>-web:80
 ```
-스크립트가 처리: `projects/<id>/` 템플릿 생성 + `server/caddy/Caddyfile`에 `<id>.ax-stack.com` 블록 + `site/public/registry.json` 항목 추가.
-이후:
+스크립트가 처리: `server/caddy/Caddyfile` 라우팅 블록(append, inode 유지) + (static) `server/compose.yaml` 서비스 + `server/sites/<id>/` + `site/public/registry.json` 카드 항목.
+이후 배포:
 ```bash
-# 서버에 server/ 동기화 + 프로젝트 기동
-rsync -az -e "ssh -i ssh/drops.pem" server/ ubuntu@43.133.243.241:/home/ubuntu/ax-stack/
-ssh/connect.sh "cd ~/ax-stack && docker compose up -d"
-# 와일드카드 A레코드 덕에 DNS 작업 불필요. 첫 접속 시 Caddy가 인증서 자동 발급.
+scripts/deploy-stack.sh        # server/ 동기화(--inplace) + compose up + caddy reload
+# 와일드카드 A레코드 덕에 DNS 작업 불필요. 첫 https 접속 시 Caddy가 인증서 자동 발급.
 curl -I https://<id>.ax-stack.com
+# 메인 카드 반영: site/** push → Actions, 또는 scripts/deploy-site.sh
 ```
+> 검증된 레퍼런스: `hello.ax-stack.com`(정적, `server/sites/hello/`).
 
 ## 5. CI/CD (GitHub Actions)
 - 레포: `dropsyoon/ax-stack` (PRIVATE).
@@ -78,6 +81,7 @@ curl -I https://<id>.ax-stack.com
 
 ## 7. 트러블슈팅
 - **사이트 안 뜸**: ① `dig +short ax-stack.com`=서버IP ② 보안그룹 80/443 ③ `docker compose ps`(caddy·landing Up) ④ `docker compose logs caddy`.
-- **서브도메인 인증서 실패**: 와일드카드 A레코드 존재 확인 + Caddy 로그. HTTP-01은 해당 호스트가 서버로 도달해야 발급됨.
+- **서브도메인 인증서 실패**: 와일드카드 A레코드 존재 확인 + Caddy 로그. HTTP-01은 해당 호스트가 서버로 도달해야 발급됨. **Caddyfile에 `http:// { reverse_proxy ... }` catch-all 블록을 두지 말 것** — 80포트 전체를 프록시하면 ACME 챌린지(`/.well-known/acme-challenge/`)를 가로채 발급 실패.
+- **Caddyfile 변경이 반영 안 됨(`config is unchanged`)**: 단일 파일 바인드마운트라 rsync가 새 inode로 교체하면 컨테이너가 옛 내용을 본다. 배포는 **`rsync --inplace`**(inode 유지) + `caddy reload`. 이미 어긋났으면 `docker compose up -d --force-recreate caddy`로 1회 복구. (`scripts/deploy-stack.sh`·`deploy-stack.yml`은 `--inplace` 적용됨.)
 - **메모리 압박**: `free -h`, `docker stats --no-stream`. 무거운 컨테이너 `mem_limit` 확인, on-demand 전환 검토.
 - **디스크 부족**: `docker image prune -f`, `docker builder prune -f`.

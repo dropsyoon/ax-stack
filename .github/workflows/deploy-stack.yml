@@ -27,8 +27,9 @@ jobs:
           printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/key
           chmod 600 ~/.ssh/key
           SSHOPT="-i ~/.ssh/key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-          rsync -az -e "ssh $SSHOPT" \
+          # --inplace: Caddyfile 단일 파일 바인드마운트 inode 유지(필수). 새 inode면 reload가 'unchanged' 판정.
+          rsync -az --inplace -e "ssh $SSHOPT" \
             server/ \
             "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/ubuntu/ax-stack/"
           ssh $SSHOPT "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
-            "cd ~/ax-stack && docker compose up -d && docker compose ps"
+            "cd ~/ax-stack && docker compose up -d && docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile && docker compose ps"

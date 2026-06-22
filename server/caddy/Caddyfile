@@ -9,12 +9,17 @@ ax-stack.com, www.ax-stack.com {
 	reverse_proxy landing:80
 }
 
-# IP로 직접 들어오는 :80 요청도 랜딩으로 (선택)
-http:// {
-	reverse_proxy landing:80
-}
+# 주의: `http:// { reverse_proxy ... }` catch-all 블록은 두지 않는다.
+# 80포트 전체를 프록시하면 Let's Encrypt HTTP-01 챌린지(/.well-known/acme-challenge/)
+# 까지 가로채 새 서브도메인 인증서 발급이 실패한다. (각 사이트 블록은 Caddy가
+# 자동으로 http→https 리다이렉트 + 인증서 자동 발급을 처리한다.)
 
-# ── 서비스 추가 예시 (서브도메인별 라우팅) ──
-# app1.ax-stack.com {
-# 	reverse_proxy app1:80
-# }
+# ============================================================
+# 서브도메인 포트폴리오 — <id>.ax-stack.com → reverse_proxy <id>-web:80
+# 와일드카드 A레코드(*.ax-stack.com)가 서버를 가리키므로
+# 블록만 추가하면 Caddy가 접속 시 인증서를 자동 발급한다.
+# ============================================================
+
+hello.ax-stack.com {
+	reverse_proxy hello-web:80
+}

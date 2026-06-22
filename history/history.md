@@ -4,6 +4,7 @@
 
 ## 목차
 - [2026-06-22 — 인프라 골격 + 메인 사이트 이전·리뉴얼](#2026-06-22--인프라-골격--메인-사이트-이전리뉴얼)
+- [2026-06-22 (이어서) — CI/CD·서브도메인 패턴 검증·자동화](#2026-06-22-이어서--cicd서브도메인-패턴-검증자동화)
 
 ---
 
@@ -40,3 +41,27 @@
 - [ ] **사용자**: 가비아 `*.ax-stack.com` 와일드카드 A레코드 → 43.133.243.241.
 - [ ] 메인 사이트 첫 배포 → `https://ax-stack.com` 확인.
 - [ ] 기존 포트폴리오(drops-rag→rag, drops-podcast→podcast) 서브도메인 이전.
+
+---
+
+## 2026-06-22 (이어서) — CI/CD·서브도메인 패턴 검증·자동화
+
+### 한 일
+1. **GitHub 레포**: `dropsyoon/ax-stack`(private) 생성·초기 push. SSH 키 미등록이라 origin을 HTTPS+gh토큰으로 전환.
+2. **메인 사이트 첫 배포**: `vite build`(registry.json 포함) → 서버 `~/ax-stack/sites/landing/` rsync → **`https://ax-stack.com` 라이브**(스크린샷 정상, title=ax-stack).
+3. **CI/CD 구성·검증**: `.github/workflows/deploy-site.yml`(site 빌드→rsync), `deploy-stack.yml`(server 동기화→compose up→caddy reload). Secrets(SSH_PRIVATE_KEY/HOST/USER) 등록. push로 **두 워크플로 실제 성공**.
+4. **와일드카드 DNS**(사용자): 가비아 `*.ax-stack.com` A→43.133.243.241. 전파 확인(임의 서브도메인 모두 서버 IP).
+5. **서브도메인 패턴 end-to-end 검증**: `hello.ax-stack.com`(정적 nginx 컨테이너 + Caddy reverse_proxy) → **HTTP 200 + Let's Encrypt 자동 인증서**(6/22~9/20).
+6. **자동화 산출물**: `scripts/add-subdomain.sh`(static/proxy 모드 — Caddyfile·compose·registry 일괄 등록), `scripts/deploy-stack.sh`·`deploy-site.sh`.
+
+### 트러블슈팅(중요 교훈)
+- **서브도메인 인증서 실패 원인 ①**: Caddyfile의 `http:// { reverse_proxy landing:80 }` catch-all이 80포트 전체(ACME HTTP-01 챌린지 포함)를 가로챔 → 제거.
+- **원인 ②(핵심)**: Caddyfile은 **단일 파일 바인드마운트**. rsync 기본 동작이 새 inode로 교체 → 컨테이너가 옛 내용 유지(`config is unchanged`). **해결: rsync `--inplace`(inode 유지) + caddy reload**. 어긋난 경우 `up -d --force-recreate caddy`로 1회 복구. → `scripts/deploy-stack.sh`·`deploy-stack.yml`에 반영.
+
+### 현재 라이브 상태
+- `https://ax-stack.com` (메인, 정적 SPA)
+- `https://hello.ax-stack.com` (서브도메인 패턴 레퍼런스, 정적)
+
+### 다음
+- [ ] Task 5: 기존 포트폴리오 이전 — `drops-rag`→`rag.ax-stack.com`, `drops-podcast`→`podcast.ax-stack.com`. 소스 확보·basePath 루트화(소스변경 사용자 분담)·리소스 점검(4GB)·on-demand(Sablier) 검토.
+- [ ] (선택) 파비콘 추가(현재 favicon.ico 404), 회사 콘텐츠(Company/Services/Contact 문구) 다듬기.
